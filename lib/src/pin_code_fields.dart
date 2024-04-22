@@ -132,6 +132,9 @@ class PinCodeTextField extends StatefulWidget {
   /// work with all form windows
   final Function? onTap;
 
+  /// Whether to show a confirmation dialog before pasting or not (defaults to true).
+  final bool showPasteConfirmationDialog;
+
   /// Configuration for paste dialog. Read more [DialogConfig]
   final DialogConfig? dialogConfig;
 
@@ -214,72 +217,73 @@ class PinCodeTextField extends StatefulWidget {
   /// Builds separator children
   final IndexedWidgetBuilder? separatorBuilder;
 
-  PinCodeTextField({
-    Key? key,
-    required this.appContext,
-    required this.length,
-    this.controller,
-    this.obscureText = false,
-    this.obscuringCharacter = '●',
-    this.obscuringWidget,
-    this.blinkWhenObscuring = false,
-    this.blinkDuration = const Duration(milliseconds: 500),
-    this.onChanged,
-    this.onCompleted,
-    this.backgroundColor,
-    this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
-    this.animationDuration = const Duration(milliseconds: 150),
-    this.animationCurve = Curves.easeInOut,
-    this.animationType = AnimationType.slide,
-    this.keyboardType = TextInputType.visiblePassword,
-    this.autoFocus = false,
-    this.focusNode,
-    this.onTap,
-    this.enabled = true,
-    this.inputFormatters = const <TextInputFormatter>[],
-    this.textStyle,
-    this.useHapticFeedback = false,
-    this.hapticFeedbackTypes = HapticFeedbackTypes.light,
-    this.pastedTextStyle,
-    this.enableActiveFill = false,
-    this.textCapitalization = TextCapitalization.none,
-    this.textInputAction = TextInputAction.done,
-    this.autoDismissKeyboard = true,
-    this.autoDisposeControllers = true,
-    this.onSubmitted,
-    this.onEditingComplete,
-    this.errorAnimationController,
-    this.beforeTextPaste,
-    this.dialogConfig,
-    this.pinTheme = const PinTheme.defaults(),
-    this.keyboardAppearance,
-    this.validator,
-    this.onSaved,
-    this.autovalidateMode = AutovalidateMode.onUserInteraction,
-    this.errorTextSpace = 16,
-    this.errorTextDirection = TextDirection.ltr,
-    this.errorTextMargin = EdgeInsets.zero,
-    this.enablePinAutofill = true,
-    this.errorAnimationDuration = 500,
-    this.boxShadows,
-    this.showCursor = true,
-    this.cursorColor,
-    this.cursorWidth = 2,
-    this.cursorHeight,
-    this.hintCharacter,
-    this.hintStyle,
-    this.textGradient,
-    this.readOnly = false,
-    this.autoUnfocus = true,
+  PinCodeTextField(
+      {Key? key,
+      required this.appContext,
+      required this.length,
+      this.controller,
+      this.obscureText = false,
+      this.obscuringCharacter = '●',
+      this.obscuringWidget,
+      this.blinkWhenObscuring = false,
+      this.blinkDuration = const Duration(milliseconds: 500),
+      this.onChanged,
+      this.onCompleted,
+      this.backgroundColor,
+      this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
+      this.animationDuration = const Duration(milliseconds: 150),
+      this.animationCurve = Curves.easeInOut,
+      this.animationType = AnimationType.slide,
+      this.keyboardType = TextInputType.visiblePassword,
+      this.autoFocus = false,
+      this.focusNode,
+      this.onTap,
+      this.enabled = true,
+      this.inputFormatters = const <TextInputFormatter>[],
+      this.textStyle,
+      this.useHapticFeedback = false,
+      this.hapticFeedbackTypes = HapticFeedbackTypes.light,
+      this.pastedTextStyle,
+      this.enableActiveFill = false,
+      this.textCapitalization = TextCapitalization.none,
+      this.textInputAction = TextInputAction.done,
+      this.autoDismissKeyboard = true,
+      this.autoDisposeControllers = true,
+      this.onSubmitted,
+      this.onEditingComplete,
+      this.errorAnimationController,
+      this.beforeTextPaste,
+      this.showPasteConfirmationDialog = true,
+      this.dialogConfig,
+      this.pinTheme = const PinTheme.defaults(),
+      this.keyboardAppearance,
+      this.validator,
+      this.onSaved,
+      this.autovalidateMode = AutovalidateMode.onUserInteraction,
+      this.errorTextSpace = 16,
+      this.errorTextDirection = TextDirection.ltr,
+      this.errorTextMargin = EdgeInsets.zero,
+      this.enablePinAutofill = true,
+      this.errorAnimationDuration = 500,
+      this.boxShadows,
+      this.showCursor = true,
+      this.cursorColor,
+      this.cursorWidth = 2,
+      this.cursorHeight,
+      this.hintCharacter,
+      this.hintStyle,
+      this.textGradient,
+      this.readOnly = false,
+      this.autoUnfocus = true,
 
-    /// Default for [AutofillGroup]
-    this.onAutoFillDisposeAction = AutofillContextAction.commit,
+      /// Default for [AutofillGroup]
+      this.onAutoFillDisposeAction = AutofillContextAction.commit,
 
-    /// Default create internal [AutofillGroup]
-    this.useExternalAutoFillGroup = false,
-    this.scrollPadding = const EdgeInsets.all(20),
-    this.separatorBuilder,
-  })  : assert(obscuringCharacter.isNotEmpty),
+      /// Default create internal [AutofillGroup]
+      this.useExternalAutoFillGroup = false,
+      this.scrollPadding = const EdgeInsets.all(20),
+      this.separatorBuilder})
+      : assert(obscuringCharacter.isNotEmpty),
         super(key: key);
 
   @override
@@ -856,10 +860,14 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
                         if (data?.text?.isNotEmpty ?? false) {
                           if (widget.beforeTextPaste != null) {
                             if (widget.beforeTextPaste!(data!.text)) {
-                              _showPasteDialog(data.text!);
+                              widget.showPasteConfirmationDialog
+                                  ? _showPasteDialog(data.text!)
+                                  : _paste(data.text!);
                             }
                           } else {
-                            _showPasteDialog(data!.text!);
+                            widget.showPasteConfirmationDialog
+                                ? _showPasteDialog(data!.text!)
+                                : _paste(data!.text!);
                           }
                         }
                       }
@@ -874,6 +882,10 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
         ),
       ),
     );
+  }
+
+  void _paste(String text) {
+    _textEditingController!.text = text;
   }
 
   List<Widget> _generateFields() {
@@ -992,7 +1004,7 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
         CupertinoDialogAction(
           child: Text(_dialogConfig.affirmativeText!),
           onPressed: () {
-            _textEditingController!.text = pastedText;
+            _paste(pastedText);
             Navigator.of(context, rootNavigator: true).pop();
           },
         ),
@@ -1008,7 +1020,7 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
         TextButton(
           child: Text(_dialogConfig.affirmativeText!),
           onPressed: () {
-            _textEditingController!.text = pastedText;
+            _paste(pastedText);
             Navigator.of(context, rootNavigator: true).pop();
           },
         ),
